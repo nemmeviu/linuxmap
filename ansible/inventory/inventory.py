@@ -97,7 +97,8 @@ def update_es(_id, result):
             body=body
         )
     except:
-        print("fail: %s" % _id)
+       # print("fail: %s" % _id)
+        pass
 
 
 def get_access(host):
@@ -221,6 +222,7 @@ class EsInventory(object):
                     "ansible_connection": "ssh",
                     "ansible_ssh_user": MAPUSER,
                     "ansible_ssh_pass": MAPPASS,
+                    "ansible_python_interpreter": "/usr/local/bin/python2.6",
                     "host_key_checking": "false"
                 }
             }
