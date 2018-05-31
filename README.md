@@ -16,8 +16,9 @@ execute a ansible setup module to extract informations.
 | TENANT        | False                                    | Netbox Tenant slug                     |
 | COUNTRY       | False                                    | Netbox Country Name (Region Father)    |
 | PROCS         | 20                                       | Number of hosts mappeds in some time   |
-| TIMEOUT       | 180					   | Whait Timeout in seconds	     	    |
+| TIMEOUT       | 30					   | Whait Timeout in seconds	     	    |
 | ES_SIZE_QUERY | 10					   | Default Elasticsearch hosts query size |
+| SSH_PORT      | 22					   | Default ssh port                       |
 | ROLE          | False                                    | Netbox Role name                       |
 
 #### Usage

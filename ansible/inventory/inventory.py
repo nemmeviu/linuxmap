@@ -21,6 +21,7 @@ MAPPASS = os.getenv('MAPPASS', 'linuxmap').split(',')
 COUNTRY = os.getenv('COUNTRY', '')
 TENANT = os.getenv('TENANT', '')
 ROLE = os.getenv('ROLE', '')
+SSH_PORT = os.getenv('SSH_PORT', '22')
 
 ES_SIZE_QUERY = int(os.getenv('ES_SIZE_QUERY', '500'))
 
@@ -33,7 +34,7 @@ ES_INDEX_UPDATE = index + '-' + d.strftime('%m%Y')
 ES_INDEX_TYPE = os.getenv('ES_INDEX_TYPE', 'nmap')
 MAP_TYPE = 'linux'
 
-TIMEOUT = int(os.getenv('TIMEOUT', '180'))
+TIMEOUT = int(os.getenv('TIMEOUT', '30'))
 
 if (COUNTRY == '' and TENANT == ''):
     print('Please, create COUNTRY or TENANT env variable')
@@ -112,10 +113,10 @@ def get_access(host):
     accessmode=False
     host_ip = host['_source']['ip']
     try:
-        sock = socket.create_connection((host_ip, 22), timeout=10)
+        sock = socket.create_connection((host_ip, SSH_PORT), timeout=TIMEOUT)
         if(sock):
-            sshpass = "sshpass -p %s ssh %s@%s exit" % (MAPPASS, MAPUSER, host_ip) 
-            pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+            sshpass = "sshpass -p %s ssh -o StrictHostKeyChecking=no -p %s %s@%s exit" % (MAPPASS, SSH_PORT, MAPUSER, host_ip) 
+            pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=TIMEOUT)
             if( pipe.returncode == 0):
                 ip_to_ansible = True
                 #result['parsed'] = 1
@@ -212,7 +213,6 @@ class EsInventory(object):
         print(res)
         ips = []
         for doc in res['hits']['hits']:
-            print(doc)
             ips.append(doc)
         self.ips = ips
 
