@@ -206,7 +206,7 @@ class EsInventory(object):
 
         payload = json.dumps(payload)
         r = requests.get(
-            'http://lego.cencosud.corp/es/nmap-*/_search',
+                'http://127.0.0.1:9200/nmap-*/_search',
             headers=headers,
             data=payload
         )
