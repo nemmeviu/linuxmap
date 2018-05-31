@@ -28,8 +28,6 @@ ROLE = os.getenv('ROLE', '')
 ES_SIZE_QUERY = int(os.getenv('ES_SIZE_QUERY', '10'))
 
 ES_SERVER = os.getenv('ES_SERVER', '127.0.0.1')
-MAPUSER = "admcmdb"
-MAPPASS = "password123."
 index = os.getenv('ES_INDEX', 'nmap')
 d = datetime.date.today()
 ES_INDEX_SEARCH = index + '-*'
@@ -46,7 +44,7 @@ if (COUNTRY == '' and TENANT == ''):
 
 es = Elasticsearch( hosts=[ ES_SERVER ])    
 
-PROCS = int(os.getenv('PROCS', '1'))
+PROCS = int(os.getenv('PROCS', '10'))
 try:
     MPPROCS = int(os.getenv('MPPROCS', '1'))
 except:
@@ -105,10 +103,10 @@ def update_es(_id, result):
 
 def get_access(host):
     
-    #result = {
-    #    'parsed': 3,
-    #    'err': 'not analyzed'
-    #}
+    result = {
+        'parsed': 3,
+        'err': 'not analyzed'
+    }
 
 
     ip_to_ansible = False
@@ -120,16 +118,13 @@ def get_access(host):
         sock = socket.create_connection((host_ip, 22), timeout=10)
         if(sock):
             sshpass = "sshpass -p %s ssh %s@%s exit" % (MAPPASS, MAPUSER, host_ip) 
-            pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=50)
-            msg  = pipe.stderr
-            midi = pipe.stdout
-            print(pipe.returncode)
+            pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
             if( pipe.returncode == 0):
                 ip_to_ansible = True
                 #result['parsed'] = 1
                 #result['err'] = "Permission denied"
             else:
-                result['parsed'] = pipe.reteurncode
+                result['parsed'] = pipe.returncode
                 result['err'] = pipe.stderr.decode()
 
                 
@@ -139,7 +134,7 @@ def get_access(host):
     except socket.error as err:
         result['parsed'] = "-2"
         result['err'] = err
-    except
+    except:
         result['parsed'] = "-3"
         result['err'] = "Random"
     if ip_to_ansible == False:
