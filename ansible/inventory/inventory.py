@@ -42,7 +42,7 @@ if (COUNTRY == '' and TENANT == ''):
 
 es = Elasticsearch( hosts=[ ES_SERVER ])    
 ansible_ip = []
-PROCS = int(os.getenv('PROCS', '20'))
+PROCS = int(os.getenv('PROCS', '50'))
 try:
     MPPROCS = int(os.getenv('MPPROCS', '1'))
 except:
