@@ -16,8 +16,8 @@ from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
 from threading import Thread, Lock
 
-MAPUSER = os.getenv('MAPUSER', 'root').split(',')
-MAPPASS = os.getenv('MAPPASS', 'linuxmap').split(',')
+MAPUSER = os.getenv('MAPUSER', 'root')
+MAPPASS = os.getenv('MAPPASS', 'linuxmap')
 COUNTRY = os.getenv('COUNTRY', '')
 TENANT = os.getenv('TENANT', '')
 ROLE = os.getenv('ROLE', '')
@@ -41,7 +41,7 @@ if (COUNTRY == '' and TENANT == ''):
     sys.exit(2)
 
 es = Elasticsearch( hosts=[ ES_SERVER ])    
-
+ansible_ip = []
 PROCS = int(os.getenv('PROCS', '20'))
 try:
     MPPROCS = int(os.getenv('MPPROCS', '1'))
@@ -119,8 +119,7 @@ def get_access(host):
             pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=TIMEOUT)
             if( pipe.returncode == 0):
                 ip_to_ansible = True
-                #result['parsed'] = 1
-                #result['err'] = "Permission denied"
+                ansible_ip.append(host_ip)
             else:
                 result['parsed'] = pipe.returncode
                 result['err'] = pipe.stderr.decode()
@@ -210,7 +209,6 @@ class EsInventory(object):
             size=ES_SIZE_QUERY,
         )
 
-        print(res)
         ips = []
         for doc in res['hits']['hits']:
             ips.append(doc)
@@ -273,7 +271,7 @@ class EsInventory(object):
         shared_info['finalizar'] = True
         t.join()
             
-            
+        self.config['linux']['hosts'] = ansible_ip   
         return(self.config)
     
 def parse_args():
