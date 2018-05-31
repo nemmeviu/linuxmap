@@ -15,8 +15,7 @@ execute a ansible setup module to extract informations.
 | ES_INDEX_TYPE | nmap	                                   | Type object inside index elasticsearch |
 | TENANT        | False                                    | Netbox Tenant slug                     |
 | COUNTRY       | False                                    | Netbox Country Name (Region Father)    |
-| MPPROCS       | 10                                       | Number of threads wmic in some time    |
-| PROCS         | 10                                       | Number of hosts mappeds in some time   |
+| PROCS         | 20                                       | Number of hosts mappeds in some time   |
 | TIMEOUT       | 180					   | Whait Timeout in seconds	     	    |
 | ES_SIZE_QUERY | 10					   | Default Elasticsearch hosts query size |
 | ROLE          | False                                    | Netbox Role name                       |

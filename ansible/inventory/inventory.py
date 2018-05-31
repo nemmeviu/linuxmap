@@ -16,16 +16,13 @@ from multiprocessing import Manager
 from multiprocessing.pool import ThreadPool
 from threading import Thread, Lock
 
-LISTMAPUSER = os.getenv('MAPUSER', 'localhost/_winmap,domain/Administrator').split(',')
-LISTMAPPASS = os.getenv('MAPPASS', 'password1,password2').split(',')
-if len(LISTMAPUSER) != len(LISTMAPPASS):
-    print('MAPUSER and MAPPASS dont have some size of values')
-    sys.exit(2)
+MAPUSER = os.getenv('MAPUSER', 'root').split(',')
+MAPPASS = os.getenv('MAPPASS', 'linuxmap').split(',')
 COUNTRY = os.getenv('COUNTRY', '')
 TENANT = os.getenv('TENANT', '')
 ROLE = os.getenv('ROLE', '')
 
-ES_SIZE_QUERY = int(os.getenv('ES_SIZE_QUERY', '10'))
+ES_SIZE_QUERY = int(os.getenv('ES_SIZE_QUERY', '500'))
 
 ES_SERVER = os.getenv('ES_SERVER', '127.0.0.1')
 index = os.getenv('ES_INDEX', 'nmap')
@@ -34,7 +31,7 @@ ES_INDEX_SEARCH = index + '-*'
 ES_INDEX_UPDATE = index + '-' + d.strftime('%m%Y')
 
 ES_INDEX_TYPE = os.getenv('ES_INDEX_TYPE', 'nmap')
-MAP_TYPE = 'windows'
+MAP_TYPE = 'linux'
 
 TIMEOUT = int(os.getenv('TIMEOUT', '180'))
 
@@ -44,7 +41,7 @@ if (COUNTRY == '' and TENANT == ''):
 
 es = Elasticsearch( hosts=[ ES_SERVER ])    
 
-PROCS = int(os.getenv('PROCS', '10'))
+PROCS = int(os.getenv('PROCS', '20'))
 try:
     MPPROCS = int(os.getenv('MPPROCS', '1'))
 except:
@@ -66,7 +63,8 @@ def get_nets_and_clear():
 
 def do_mproc():
     pool = ThreadPool(processes=MPPROCS)
-    while not shared_info['finalizar'] or len(hosts_shared_lists) > 0:
+    #while not shared_info['finalizar'] or len(hosts_shared_lists) > 0:
+    while len(hosts_shared_lists) > 0:        
         hosts_args = get_hosts_and_clear()
         if len(hosts_args) > 0:
             pool.map(subproc_exec, hosts_args)
@@ -111,7 +109,6 @@ def get_access(host):
 
     ip_to_ansible = False
     # get ssh user and pass
-    print(LISTMAPUSER)
     accessmode=False
     host_ip = host['_source']['ip']
     try:
@@ -139,21 +136,6 @@ def get_access(host):
         result['err'] = "Random"
     if ip_to_ansible == False:
         update_es(host['_id'], result)
-    #else:
-        #linux_group.append(host_ip)
-
-    print(LISTMAPUSER)
-    accessmode=False
-
-    listpass = 0    
-    for x in LISTMAPUSER:
-        mapuser = x + '%' + LISTMAPPASS[listpass]
-        conntest = 'sshpass -p %s ssh %s@%s exit' % (
-            mapuser,
-            host['_source']['ip'],
-            '''SELECT Caption from Win32_OperatingSystem'''            
-        )
-        
     
 
 def warning(*objs):
@@ -183,15 +165,9 @@ class EsInventory(object):
         Relies on the configuration generated from init to run
         _inventory_group()
         '''
-
-        COUNTRY = os.getenv('COUNTRY', '')
-        TENANT = os.getenv('TENANT', '')
-        ROLE = os.getenv('ROLE', '')
-        
-        headers={'Accept': 'application/json', 'Content-type': 'application/json'}
         LIST_TERMS = [
             { "exists": { "field": "ip" } },
-            { "term": { "map_type": "linux" } }
+            { "term": { "map_type": MAP_TYPE } }
         ]
 
         if COUNTRY != '':
@@ -209,8 +185,8 @@ class EsInventory(object):
                 { "term": { "role": ROLE } }
             )
 
-        payload = {
-            "from" : 0, "size" : 200,
+        body = {
+            "from" : 0, "size" : ES_SIZE_QUERY,
             "_source": [ "ip" ],
             "sort" : [
                 { "g_last_mod_date" : {"order" : "desc"}},
@@ -225,16 +201,18 @@ class EsInventory(object):
             }
         }
 
-        payload = json.dumps(payload)
-        r = requests.get(
-                'http://127.0.0.1:9200/nmap-*/_search',
-            headers=headers,
-            data=payload
+
+        res = es.search(
+            index=ES_INDEX_SEARCH,
+            doc_type=ES_INDEX_TYPE,
+            body=body,
+            size=ES_SIZE_QUERY,
         )
 
-        res = json.loads(r.text)
+        print(res)
         ips = []
         for doc in res['hits']['hits']:
+            print(doc)
             ips.append(doc)
         self.ips = ips
 
@@ -243,8 +221,8 @@ class EsInventory(object):
                 "hosts": self.ips,
                 "vars": {
                     "ansible_connection": "ssh",
-                    "ansible_ssh_user": "root",
-                    "ansible_ssh_pass": "coisalinda",
+                    "ansible_ssh_user": MAPUSER,
+                    "ansible_ssh_pass": MAPPASS,
                     "host_key_checking": "false"
                 }
             }
