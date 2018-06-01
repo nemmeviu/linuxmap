@@ -112,18 +112,24 @@ def get_access(host):
     ip_to_ansible = False
     # get ssh user and pass
     accessmode=False
-    #host_ip = host['_source']['ip']
-    host_ip = "g100603sv23a"
+    host_ip = host['_source']['ip']
+    #host_ip = "g100603sv23a"
     try:
         sock = socket.create_connection((host_ip, SSH_PORT), timeout=TIMEOUT)
         if(sock):
-            consulta = 'if PYTHON=$(python2.6 -V 2>&1); then echo $PYTHON; else OTHER_PYTHON=$(python -V 2>&1); if echo $OTHER_PYTHON | egrep "([3][.]|[2][.][6789])" | grep -v grep ; then echo -n; else echo "python not-found"; fi; fi' 
-            sshpass = "sshpass -p %s ssh -o StrictHostKeyChecking=no -p %s %s@%s %s" % (MAPPASS, SSH_PORT, MAPUSER, host_ip , consulta) 
-            print(sshpass)
+            consulta = 'if PYTHON=$(python2.6 -V 2>&1); then echo $PYTHON; else OTHER_PYTHON=$(python -V 2>&1); if echo $OTHER_PYTHON | egrep "([3][.]|[2][.][6789])" | grep -v grep ; then echo -n; else echo "python not-found"; fi; fi; if which lsb_release 1>/dev/null ;then Version=$(lsb_release -i -r | grep -i release) ;elif which oslevel 1>/dev/null ;then Version="AIX $(oslevel)" ; else Version=$(cat /etc/release|head -1 ); fi; echo $Version  ' 
+            sshpass = "sshpass -p %s ssh -o StrictHostKeyChecking=no -p %s %s@%s '%s'" % (MAPPASS, SSH_PORT, MAPUSER, host_ip , consulta) 
             pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=TIMEOUT)
             if( pipe.returncode == 0):
-                ip_to_ansible = True
-                ansible_ip.append(host_ip)
+                salida = pipe.stdout.decode()
+                salida = salida.split("\n")
+                print(salida)
+                result['parsed'] = "-5"
+                result['err'] = "ready to ansible"
+                result['ssh_PYversion'] = salida[0]
+                result['ssh_SOversion'] = salida[1]
+                #ip_to_ansible = True
+                #ansible_ip.append(host_ip)
             else:
                 result['parsed'] = pipe.returncode
                 result['err'] = pipe.stderr.decode()
