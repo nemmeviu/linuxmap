@@ -112,11 +112,14 @@ def get_access(host):
     ip_to_ansible = False
     # get ssh user and pass
     accessmode=False
-    host_ip = host['_source']['ip']
+    #host_ip = host['_source']['ip']
+    host_ip = "g100603sv23a"
     try:
         sock = socket.create_connection((host_ip, SSH_PORT), timeout=TIMEOUT)
         if(sock):
-            sshpass = "sshpass -p %s ssh -o StrictHostKeyChecking=no -p %s %s@%s exit" % (MAPPASS, SSH_PORT, MAPUSER, host_ip) 
+            consulta = 'if PYTHON=$(python2.6 -V 2>&1); then echo $PYTHON; else OTHER_PYTHON=$(python -V 2>&1); if echo $OTHER_PYTHON | egrep "([3][.]|[2][.][6789])" | grep -v grep ; then echo -n; else echo "python not-found"; fi; fi' 
+            sshpass = "sshpass -p %s ssh -o StrictHostKeyChecking=no -p %s %s@%s %s" % (MAPPASS, SSH_PORT, MAPUSER, host_ip , consulta) 
+            print(sshpass)
             pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=TIMEOUT)
             if( pipe.returncode == 0):
                 ip_to_ansible = True
