@@ -133,10 +133,10 @@ def get_access(host):
                 result['ssh_PYversion'] = salida[0]
                 result['ssh_SOversion'] = salida[1]
                 # result['ssh_SOversion']
-                matchOS = re.match(r'.*:\s+([0-9])[.].*', result['ssh_SOversion']):
-                if matchOS:
+                matchOS = re.match(r'.*elease:\s+([0-9])[.].*', result['ssh_SOversion'])
+                if (matchOS):
                     try:
-                        if int(matchOS.group(1)) < REDHAT_MAJOR_VERSION:
+                        if (int(matchOS.group(1)) < REDHAT_MAJOR_VERSION):
                             result['obsolete'] = True
                     except:
                         pass
