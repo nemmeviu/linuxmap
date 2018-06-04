@@ -171,7 +171,6 @@ def get_access(host):
     if ip_to_ansible == False:
         update_es(host['_id'], result)
 
-
 def do_list():
     '''
     Direct callback for when ``--list`` is provided
