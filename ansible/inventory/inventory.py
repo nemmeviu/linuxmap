@@ -7,7 +7,7 @@ Hostfootprint Netbox
 # Ansible Dynamic Inventory to pull hosts from Elasticsearch
 
 '''
-import os, requests, json, argparse, sys, time
+import os, requests, json, argparse, sys, time, re
 import socket, subprocess, logging, datetime
 
 from elasticsearch import Elasticsearch
@@ -108,7 +108,6 @@ def get_access(host):
         'err': 'not analyzed'
     }
 
-
     ip_to_ansible = False
     # get ssh user and pass
     accessmode=False
@@ -132,6 +131,14 @@ def get_access(host):
                     result['err'] = "ready to ansible"
                 result['ssh_PYversion'] = salida[0]
                 result['ssh_SOversion'] = salida[1]
+                # result['ssh_SOversion']
+                matchOS = re.match(r'.*:\s+([0-9])[.].*', result['ssh_SOversion']):
+                if matchOS:
+                    try:
+                        if int(matchOS.group(1)) < 6:
+                            result['obsolete'] = True
+                    except:
+                        pass
                 #ip_to_ansible = True
                 #ansible_ip.append(host_ip)
             else:
