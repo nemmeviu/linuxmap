@@ -20,6 +20,7 @@ execute a ansible setup module to extract informations.
 | ES_SIZE_QUERY | 10					   | Default Elasticsearch hosts query size |
 | SSH_PORT      | 22					   | Default ssh port                       |
 | ROLE          | False                                    | Netbox Role name                       |
+| REDHAT_MAJOR_VERSION | 6                                    | Major version of stable Redhat. If the S.O. release is lower than the value in this variable, will be return one "obsolete = True" key |
 
 #### Usage
 

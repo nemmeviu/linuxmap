@@ -22,6 +22,7 @@ COUNTRY = os.getenv('COUNTRY', '')
 TENANT = os.getenv('TENANT', '')
 ROLE = os.getenv('ROLE', '')
 SSH_PORT = os.getenv('SSH_PORT', '22')
+REDHAT_MAJOR_VERSION = int(os.getenv('REDHAT_MAJOR_VERSION', '6'))
 
 ES_SIZE_QUERY = int(os.getenv('ES_SIZE_QUERY', '500'))
 
@@ -135,7 +136,7 @@ def get_access(host):
                 matchOS = re.match(r'.*:\s+([0-9])[.].*', result['ssh_SOversion']):
                 if matchOS:
                     try:
-                        if int(matchOS.group(1)) < 6:
+                        if int(matchOS.group(1)) < REDHAT_MAJOR_VERSION:
                             result['obsolete'] = True
                     except:
                         pass
