@@ -8,3 +8,5 @@ RUN set -ex; \
 	pip3 install -r requirements.txt
 
 COPY ansible /opt/linuxmap/ansible
+
+COPY sshpass /opt/linuxmap/sshpass

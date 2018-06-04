@@ -22,8 +22,22 @@ execute a ansible setup module to extract informations.
 | ROLE          | False                                    | Netbox Role name                       |
 | REDHAT_MAJOR_VERSION | 6                                    | Major version of stable Redhat. If the S.O. release is lower than the value in this variable, will be return one "obsolete = True" key |
 
+
+#### Elasticsearch parsed signal values
+
+| "parsed" key | description |
+|-------:|:----------------------------------------:|
+| does not exists parsed key | the object has not be processed |
+| -5  | sshpass ok. Done to Ansible |
+| -3  | Random. Unknow failed |
+| Other value | sshpass subprocess error code return. see err value for complete log |
+
 #### Usage
 
+sshpass usage
 ```
+python3 sshpass/sshpass_parse.py
+```
+
 ansible ...
 ```
