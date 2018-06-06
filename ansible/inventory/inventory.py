@@ -88,7 +88,7 @@ class EsInventory(object):
             LIST_TERMS.append(
                 { "term": { "g_flag": TENANT } }
             )
-            
+
         if ROLE != '':
             LIST_TERMS.append(
                 { "term": { "role": ROLE } }
@@ -130,7 +130,7 @@ class EsInventory(object):
         
         ips_stable = []
         for doc in res['hits']['hits']:
-            ips_stable.append(doc)
+            ips_stable.append(doc['_source']['ip'])            
             
         res = es.search(
             index=ES_INDEX_SEARCH,
@@ -141,7 +141,7 @@ class EsInventory(object):
 
         ips_obsolete = []
         for doc in res['hits']['hits']:
-            ips_obsolete.append(doc)
+            ips_obsolete.append(doc['_source']['ip'])
 
         self.config = {
             "linux_stable": {
@@ -180,7 +180,7 @@ class EsInventory(object):
         self.do_list()
         for groups in self.config.keys():
             if host in self.config[groups]['hosts']:
-                return( { groups: host })
+                return({ groups: host })
         else:
             sys.exit(0)
             
@@ -219,7 +219,8 @@ def parse_args():
     parser.add_argument(
         '--host', '-h',
         help='Print JSON object containing hostvars for <host>',
-        action='store',
+        action='store'
+        #dest="_host"
     )
     args = parser.parse_args()
 
@@ -238,12 +239,12 @@ def main():
     # Callback condition
     if args._list:
         full = client.do_list()
-        print(full.keys())
-        print(len(full['linux_obsolete']['hosts']))
-        print(len(full['linux_stable']['hosts']))        
+        #print(full.keys)
+        #print(len(full['linux_obsolete']['hosts']))
+        print(full['linux_obsolete']['hosts'][0])
+        #print(len(full['linux_stable']['hosts']))        
         #print(client.nothing('linux'))
     elif args.host:
-        #print(client.do_host(args.host))
         print(client.do_host(args.host))        
 
 if __name__ == '__main__':

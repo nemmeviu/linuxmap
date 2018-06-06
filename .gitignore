@@ -101,6 +101,7 @@ ENV/
 
 
 *#*
+*~
 
 ansible/ansible.log
 ansible/vars
