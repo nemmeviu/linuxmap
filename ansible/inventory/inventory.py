@@ -239,9 +239,9 @@ def main():
     # Callback condition
     if args._list:
         full = client.do_list()
-        #print(full.keys)
+        print(full)
         #print(len(full['linux_obsolete']['hosts']))
-        print(full['linux_obsolete']['hosts'][0])
+        #print(full['linux_obsolete']['hosts'][0])
         #print(len(full['linux_stable']['hosts']))        
         #print(client.nothing('linux'))
     elif args.host:
