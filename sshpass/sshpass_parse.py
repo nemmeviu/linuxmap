@@ -121,7 +121,7 @@ def get_access(host):
             
             if banner.find("openssh") != -1 or banner.find("sun_ssh") != -1:
                 
-                consulta = 'hostname; if PYTHON=$(python2.6 -V 2>&1); then echo $PYTHON; else OTHER_PYTHON=$(python -V 2>&1); if echo $OTHER_PYTHON | egrep "([3][.]|[2][.][6789])" | grep -v grep ; then var=1; else echo "python not-found"; fi; fi; if which lsb_release 1>/dev/null ;then Version=$(lsb_release -i -r | grep -i release) ;elif which oslevel 1>/dev/null ;then Version="AIX $(oslevel)" ; else Version=$(cat /etc/release|head -1 ); fi; echo $Version  ' 
+                consulta = 'hostname; if PYTHON=$(python2.6 -V 2>&1); then echo $PYTHON; else OTHER_PYTHON=$(python -V 2>&1); if echo $OTHER_PYTHON | egrep "([3][.]|[2][.][6789])" | grep -v grep ; then var=1; else echo "python not-found"; fi; fi; SUNOS="$(uname)" ; if which lsb_release 1>/dev/null && [ "$SUNOS" != "SunOS" ]; then Version=$(lsb_release -i -r | grep -i release) ;elif which oslevel 1>/dev/null && [ "$SUNOS" != "SunOS" ] ;then Version="AIX $(oslevel)" ; else Version=$(cat /etc/release|head -1 ); fi; echo $Version  ' 
                 sshpass = "sshpass -p %s ssh -o StrictHostKeyChecking=no -p %s %s@%s '%s'" % (MAPPASS, SSH_PORT, MAPUSER, host_ip , consulta) 
                 pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=TIMEOUT)
                 if( pipe.returncode == 0):
