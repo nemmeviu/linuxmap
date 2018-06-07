@@ -21,6 +21,7 @@ execute a ansible setup module to extract informations.
 | SSH_PORT      | 22					   | Default ssh port                       |
 | ROLE          | False                                    | Netbox Role name                       |
 | REDHAT_MAJOR_VERSION | 6                                    | Major version of stable Redhat. If the S.O. release is lower than the value in this variable, will be return one "obsolete = True" key |
+| KILL_TIME | 1200                                    | Time for kill all sshpass process (ansible process can be zoombie) |
 
 
 #### Elasticsearch parsed signal values
