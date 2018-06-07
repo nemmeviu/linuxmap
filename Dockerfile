@@ -7,4 +7,7 @@ COPY requirements.txt /opt/linuxmap/requirements.txt
 RUN set -ex; \
 	pip3 install -r requirements.txt
 
-COPY linux_to_es.py /opt/winmap/linux_to_es.py
+COPY ansible /opt/linuxmap/ansible
+COPY sshpass /opt/linuxmap/sshpass
+
+ENTRYPOINT [ "./ansible/kill-sshpass.sh", "&"]
