@@ -29,7 +29,7 @@ ES_INDEX_SEARCH = index + '-*'
 ES_INDEX_UPDATE = index + '-' + d.strftime('%m%Y')
 
 ES_INDEX_TYPE = os.getenv('ES_INDEX_TYPE', 'nmap')
-MAP_TYPE = 'linux'
+MAP_TYPE = os.getenv('MAP_TYPE','unix')
 
 TIMEOUT = int(os.getenv('TIMEOUT', '30'))
 es = Elasticsearch( hosts=[ ES_SERVER ])
@@ -144,26 +144,26 @@ class EsInventory(object):
             ips_obsolete.append(doc['_source']['ip'])
 
         self.config = {
-            "linux_stable": {
+            "unix_stable": {
                 "hosts": ips_stable,
                 "vars": {
                     "ansible_connection": "ssh",
                     "ansible_ssh_user": MAPUSER,
                     "ansible_ssh_pass": MAPPASS,
-                    "ansible_python_interpreter": "/usr/local/bin/python2.6",
                     "host_key_checking": "false"
                 }
             },
-            "linux_obsolete": {
+            "unix_obsolete": {
                 "hosts": ips_obsolete,
                 "vars": {
-                    "rock": "rock123"
+                    "ansible_connection": "ssh",
+                    "ansible_ssh_user": MAPUSER,
+                    "ansible_ssh_pass": MAPPASS,
+                    "host_key_checking": "false",
+                    "ansible_python_interpreter": "/usr/local/bin/python2.6",
                 }
             }
         }
-        #self.config = {
-        #    "linux": self.ips,
-        #}
 
         return(self.config)
 
