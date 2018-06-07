@@ -29,7 +29,7 @@ ES_INDEX_SEARCH = index + '-*'
 ES_INDEX_UPDATE = index + '-' + d.strftime('%m%Y')
 
 ES_INDEX_TYPE = os.getenv('ES_INDEX_TYPE', 'nmap')
-MAP_TYPE = 'linux'
+MAP_TYPE = os.getenv('MAP_TYPE','unix')
 
 TIMEOUT = int(os.getenv('TIMEOUT', '30'))
 es = Elasticsearch( hosts=[ ES_SERVER ])
@@ -159,7 +159,7 @@ class EsInventory(object):
                     "ansible_connection": "ssh",
                     "ansible_ssh_user": MAPUSER,
                     "ansible_ssh_pass": MAPPASS,
-                    "host_key_checking": "false"
+                    "host_key_checking": "false",
                     "ansible_python_interpreter": "/usr/local/bin/python2.6",
                 }
             }
