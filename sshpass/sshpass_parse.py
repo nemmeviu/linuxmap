@@ -20,7 +20,7 @@ TENANT = os.getenv('TENANT', '')
 ROLE = os.getenv('ROLE', '')
 SSH_PORT = os.getenv('SSH_PORT', '22')
 REDHAT_MAJOR_VERSION = int(os.getenv('REDHAT_MAJOR_VERSION', '6'))
-MAP_TYPE = os.getenv('MAP_TYPE', 'linux')
+MAP_TYPE = os.getenv('MAP_TYPE', 'unix')
 
 ES_SIZE_QUERY = int(os.getenv('ES_SIZE_QUERY', '500'))
 
