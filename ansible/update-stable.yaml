@@ -1,0 +1,9 @@
+
+- name: Parse Stable Unix
+  hosts: unix_stable
+  vars:
+    dict_es: "{|hostname|:|{{ansible_hostname}}|, |IP|:|{{ansible_all_ipv4_addresses}}|, |sistema|:|{{ansible_system}}|, |distribucion|:|{{ansible_distribution}}|, |distribucion_version|:|{{ansible_distribution_version}}|, |arquitectura_version|:|{{ansible_architecture}}| , |procesador|:|{{ansible_processor}}|, |cores|:|{{ansible_processor_cores}}|, |cores_count|:|{{ansible_processor_count}}|, |memoria|:|{{ansible_memtotal_mb}}|,|memoria_swap|:|{{ansible_swaptotal_mb}}|, |kernel|:|{{ansible_kernel}}|, |interfaces_red|:|{{ansible_interfaces}}|, |python|:|{{ansible_python_version}}|,|parsed|:|0|,|CurrentTimeZoneUnix|:|{{ansible_date_time.tz_offset}}| }"
+  tasks:
+    - name: ejecucion local stable
+      shell: ./unix-2-es.py "{{dict_es}}" "{{ansible_all_ipv4_addresses}}"
+      delegate_to: localhost

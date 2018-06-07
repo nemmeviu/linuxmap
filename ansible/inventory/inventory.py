@@ -7,14 +7,10 @@ Hostfootprint Netbox
 # Ansible Dynamic Inventory to pull hosts from Elasticsearch
 
 '''
-import os, requests, json, argparse, sys, time
+import os, requests, json, argparse, sys, time, re
 import socket, subprocess, logging, datetime
 
 from elasticsearch import Elasticsearch
-
-from multiprocessing import Manager
-from multiprocessing.pool import ThreadPool
-from threading import Thread, Lock
 
 MAPUSER = os.getenv('MAPUSER', 'root')
 MAPPASS = os.getenv('MAPPASS', 'linuxmap')
@@ -22,6 +18,7 @@ COUNTRY = os.getenv('COUNTRY', '')
 TENANT = os.getenv('TENANT', '')
 ROLE = os.getenv('ROLE', '')
 SSH_PORT = os.getenv('SSH_PORT', '22')
+REDHAT_MAJOR_VERSION = int(os.getenv('REDHAT_MAJOR_VERSION', '6'))
 
 ES_SIZE_QUERY = int(os.getenv('ES_SIZE_QUERY', '500'))
 
@@ -32,112 +29,10 @@ ES_INDEX_SEARCH = index + '-*'
 ES_INDEX_UPDATE = index + '-' + d.strftime('%m%Y')
 
 ES_INDEX_TYPE = os.getenv('ES_INDEX_TYPE', 'nmap')
-MAP_TYPE = 'linux'
+MAP_TYPE = os.getenv('MAP_TYPE','unix')
 
 TIMEOUT = int(os.getenv('TIMEOUT', '30'))
-
-if (COUNTRY == '' and TENANT == ''):
-    print('Please, create COUNTRY or TENANT env variable')
-    sys.exit(2)
-
-es = Elasticsearch( hosts=[ ES_SERVER ])    
-ansible_ip = []
-PROCS = int(os.getenv('PROCS', '50'))
-try:
-    MPPROCS = int(os.getenv('MPPROCS', '1'))
-except:
-    print('MPPROCS is a number')
-    sys.exit(2)
-
-###### MP
-def get_hosts_and_clear():
-    result = []
-    while len(hosts_shared_lists) > 0:
-        result.append(hosts_shared_lists.pop())
-    return(result)
-
-def get_nets_and_clear():
-    result = []
-    while len(nets_shared_lists) > 0:
-        result.append(nets_shared_lists.pop())
-    return(result)
-
-def do_mproc():
-    pool = ThreadPool(processes=MPPROCS)
-    #while not shared_info['finalizar'] or len(hosts_shared_lists) > 0:
-    while len(hosts_shared_lists) > 0:        
-        hosts_args = get_hosts_and_clear()
-        if len(hosts_args) > 0:
-            pool.map(subproc_exec, hosts_args)
-        time.sleep(1)
-
-### END MP
-        
-# class MakeConn(object):
-#     '''
-#     check access in host.
-#     - if true, call subproc_exec
-#     - if false, save the fail status on elasticsearch
-#     '''
-
-def update_es(_id, result):
-
-    _id = _id
-    # :-)
-    
-    body = {
-        "doc": result
-    }
-
-    try:
-        response = es.update(
-            index=ES_INDEX_UPDATE,
-            doc_type=ES_INDEX_TYPE,
-            id=_id,
-            body=body
-        )
-    except:
-       # print("fail: %s" % _id)
-        pass
-
-
-def get_access(host):
-    
-    result = {
-        'parsed': 3,
-        'err': 'not analyzed'
-    }
-
-
-    ip_to_ansible = False
-    # get ssh user and pass
-    accessmode=False
-    host_ip = host['_source']['ip']
-    try:
-        sock = socket.create_connection((host_ip, SSH_PORT), timeout=TIMEOUT)
-        if(sock):
-            sshpass = "sshpass -p %s ssh -o StrictHostKeyChecking=no -p %s %s@%s exit" % (MAPPASS, SSH_PORT, MAPUSER, host_ip) 
-            pipe = subprocess.run(sshpass, shell=True,stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=TIMEOUT)
-            if( pipe.returncode == 0):
-                ip_to_ansible = True
-                ansible_ip.append(host_ip)
-            else:
-                result['parsed'] = pipe.returncode
-                result['err'] = pipe.stderr.decode()
-
-                
-    except socket.timeout as err:
-        result['parsed'] = "-1"
-        result['err'] = err
-    except socket.error as err:
-        result['parsed'] = "-2"
-        result['err'] = err
-    except:
-        result['parsed'] = "-3"
-        result['err'] = "Random"
-    if ip_to_ansible == False:
-        update_es(host['_id'], result)
-    
+es = Elasticsearch( hosts=[ ES_SERVER ])
 
 def warning(*objs):
     print("WARNING: ", *objs, file=sys.stderr)
@@ -166,9 +61,22 @@ class EsInventory(object):
         Relies on the configuration generated from init to run
         _inventory_group()
         '''
+        
         LIST_TERMS = [
             { "exists": { "field": "ip" } },
-            { "term": { "map_type": MAP_TYPE } }
+            { "term": { "map_type": MAP_TYPE } },
+            { "term": { "parsed": "-5" } },            
+        ]
+        
+        LIST_TERMS_OBSOLETE = [
+            { "exists": { "field": "ip" } },
+            { "exists": { "field": "obsolete" } },
+            { "term": { "parsed": "-5" } },            
+            { "term": { "map_type": MAP_TYPE } },
+        ]
+        
+        LIST_NOT_TERMS = [
+            { "exists": { "field": "obsolete" } },            
         ]
 
         if COUNTRY != '':
@@ -180,13 +88,13 @@ class EsInventory(object):
             LIST_TERMS.append(
                 { "term": { "g_flag": TENANT } }
             )
-            
+
         if ROLE != '':
             LIST_TERMS.append(
                 { "term": { "role": ROLE } }
             )
 
-        body = {
+        body_stable = {
             "from" : 0, "size" : ES_SIZE_QUERY,
             "_source": [ "ip" ],
             "sort" : [
@@ -194,42 +102,70 @@ class EsInventory(object):
             ],
             "query": {
                 "bool": {
-                    "must_not": {
-                        "exists": { "field": "parsed" }
-                    },
-                    "must": LIST_TERMS
+                    "must": LIST_TERMS,
+                    "must_not": LIST_NOT_TERMS,
                 }
             }
         }
 
+        body_obsolete = {
+            "from" : 0, "size" : ES_SIZE_QUERY,
+            "_source": [ "ip" ],
+            "sort" : [
+                { "g_last_mod_date" : {"order" : "desc"}},
+            ],
+            "query": {
+                "bool": {
+                    "must": LIST_TERMS_OBSOLETE
+                }
+            }
+        }
 
         res = es.search(
             index=ES_INDEX_SEARCH,
             doc_type=ES_INDEX_TYPE,
-            body=body,
+            body=body_stable,
+            size=ES_SIZE_QUERY,
+        )
+        
+        ips_stable = []
+        for doc in res['hits']['hits']:
+            ips_stable.append(doc['_source']['ip'])            
+            
+        res = es.search(
+            index=ES_INDEX_SEARCH,
+            doc_type=ES_INDEX_TYPE,
+            body=body_obsolete,
             size=ES_SIZE_QUERY,
         )
 
-        ips = []
+        ips_obsolete = []
         for doc in res['hits']['hits']:
-            ips.append(doc)
-        self.ips = ips
+            ips_obsolete.append(doc['_source']['ip'])
 
         self.config = {
-            "linux": {
-                "hosts": self.ips,
+            "unix_stable": {
+                "hosts": ips_stable,
                 "vars": {
                     "ansible_connection": "ssh",
                     "ansible_ssh_user": MAPUSER,
                     "ansible_ssh_pass": MAPPASS,
-                    "ansible_python_interpreter": "/usr/local/bin/python2.6",
                     "host_key_checking": "false"
+                }
+            },
+            "unix_obsolete": {
+                "hosts": ips_obsolete,
+                "vars": {
+                    "ansible_connection": "ssh",
+                    "ansible_ssh_user": MAPUSER,
+                    "ansible_ssh_pass": MAPPASS,
+                    "host_key_checking": "false",
+                    "ansible_python_interpreter": "/usr/local/bin/python2.6",
                 }
             }
         }
-        #self.config = {
-        #    "linux": self.ips,
-        #}
+
+        return(self.config)
 
     def do_host(self, host):
         return(self._hostvars(host))
@@ -244,7 +180,7 @@ class EsInventory(object):
         self.do_list()
         for groups in self.config.keys():
             if host in self.config[groups]['hosts']:
-                return( { groups: host })
+                return({ groups: host })
         else:
             sys.exit(0)
             
@@ -255,26 +191,10 @@ class EsInventory(object):
         #return attributes
 
     def nothing(self, group):
+        pass
         
-        for host in self.config[group]['hosts']:
-            nets_shared_lists.append(host)
-
-        t = Thread(target=do_mproc)
-        t.start()
-
-        pool = ThreadPool(processes=PROCS)
-        while len(nets_shared_lists) > 0:
-            nets = get_nets_and_clear()
-            if len(nets) > 0:
-                pool.map(get_access, nets)
-            #pool.map(subproc_exec, nets)
-            time.sleep(1)
-            
-        shared_info['finalizar'] = True
-        t.join()
-            
-        self.config['linux']['hosts'] = ansible_ip   
-        return(self.config)
+        #self.config['linux']['hosts'] = ansible_ip   
+        #return(self.config)
     
 def parse_args():
     #desc = __doc__.splitlines()[4]  # Just to avoid being redundant
@@ -299,7 +219,8 @@ def parse_args():
     parser.add_argument(
         '--host', '-h',
         help='Print JSON object containing hostvars for <host>',
-        action='store',
+        action='store'
+        #dest="_host"
     )
     args = parser.parse_args()
 
@@ -317,17 +238,14 @@ def main():
 
     # Callback condition
     if args._list:
-        client.do_list()
-        print(client.nothing('linux'))
+        full = client.do_list()
+        print(full)
+        #print(len(full['linux_obsolete']['hosts']))
+        #print(full['linux_obsolete']['hosts'][0])
+        #print(len(full['linux_stable']['hosts']))        
+        #print(client.nothing('linux'))
     elif args.host:
-        #print(client.do_host(args.host))
         print(client.do_host(args.host))        
 
-manager = Manager()
-hosts_shared_lists = manager.list([])
-hosts_error_list = manager.list([])
-nets_shared_lists = manager.list([])
-shared_info = manager.dict()
-        
 if __name__ == '__main__':
     main()
