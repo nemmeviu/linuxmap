@@ -10,4 +10,3 @@ RUN set -ex; \
 COPY ansible /opt/linuxmap/ansible
 COPY sshpass /opt/linuxmap/sshpass
 
-ENTRYPOINT [ "./ansible/kill-sshpass.sh", "&"]
